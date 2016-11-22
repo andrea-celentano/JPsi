@@ -13,13 +13,14 @@ set EXE2=$JPSIANA_ROOT/JPsiExe/generatePhysics
 set DATACONFIG=$RUNDIR/MC.cfg
 
 #set OUTFILE=$DATADIR/PseudoData_$1.root
-set OUTFILE=$DATADIR/gen_$1.root
+#set OUTFILE=$DATADIR/gen_$1.root
+set OUTFILE=$DATADIR/gen_$1.lund
 
 cd $RUNDIR
 
 echo "Doing Phase Space"
 set PSFILE=$DATADIR/PS_$1.root
-$EXE1 -N $2 -s $1 -o $PSFILE
+$EXE1 -N $2 -s $1 -o $PSFILE 
 echo "Done Phase Space"
 
 echo "Do Physics"

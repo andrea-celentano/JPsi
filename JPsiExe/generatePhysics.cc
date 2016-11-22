@@ -25,7 +25,10 @@
 
 #include "JPsiIO/JPsiDataReader.h"
 #include "JPsiIO/JPsiDataWriter.h"
+#include "JPsiIO/JPsiDataWriterLUND.h"
+
 #include "JPsiIO/dict.h"
+
 
 
 
@@ -131,7 +134,8 @@ int main(int argc, char** argv){
 	cout << "... Finished creating AmpToolsInterface" << endl;
 
 	/*Output*/
-	JPsiDataWriter Writer(outfilename);
+//	JPsiDataWriter Writer(outfilename);
+	JPsiDataWriterLUND Writer(outfilename);
 
 	/*Input: for amplitudes*/
 	vector<string> arguments;
