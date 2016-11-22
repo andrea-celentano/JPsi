@@ -1,0 +1,181 @@
+#include <iostream>
+#include <string>
+
+//ROOT Stuffs
+#include "TFile.h"
+#include "TTree.h"
+#include "TClonesArray.h"
+#include "TParticle.h"
+#include "TLorentzVector.h"
+#include "TRandom3.h"
+#include "TSystem.h"
+//Read and write
+#include "Clas12PhotonsDataReader.h"
+#include "Clas12PhotonsDataWriter.h"
+
+//MonteCarlo Stuff
+extern "C"{
+  #include "TFastMC.hxx"  
+}
+
+
+using namespace std;
+
+Float_t Track(TLorentzVector* vec, Int_t ID, string CONFIGFILE);
+Float_t ForwardTagger(TLorentzVector* vec);
+
+
+
+
+int main(int argc, char** argv){
+
+
+    // ************************
+    // usage
+    // ************************
+
+
+
+  if (argc != 3){
+    cout << "Usage:" << endl << endl;
+    cout << "\tdoMonteCarlo> <Input file name> <Configuration File>" << endl << endl;
+    return 1;
+  }
+  cout << endl << " *** Do MonteCarlo with FastMC *** " << endl << endl;
+  gSystem->Load("libEG");
+    // ************************
+    // parse the command line parameters
+    // ************************
+
+  string infilename(argv[1]);
+  string configfile(argv[2]);
+
+    // ************************
+    // create a DataWriter
+    // ************************
+
+  cout << "Creating Data Writer..." << endl;
+  vector<string> dataWriterNames;
+  dataWriterNames.push_back("FinalREC");
+  Clas12PhotonsDataWriter dataWriter(infilename,dataWriterNames);
+  cout << "... Finished creating Data Writer" << endl << endl;
+
+
+  // ************************
+  // create a DataReader
+  // ************************
+
+  cout << "Creating Data Reader..." << endl;
+  vector<string> cdata;
+  cdata.push_back(infilename);
+  cdata.push_back("FinalGEN");
+  cdata.push_back("0");
+
+  Clas12PhotonsDataReader dataReader(cdata); 
+  cout << "... Finished creating Data Reader" << endl << endl;
+
+  //*********************
+  //Read the number of events
+  //********************
+  int nevents=dataReader.numEvents();
+
+   // ************************
+    // Read events and do the MonteCarlo
+    // ************************
+  Double_t weight=0; //Is detected?
+  TLorentzVector *lv=new TLorentzVector(0,0,0,0);
+  Int_t pdg=0;
+  TClonesArray *array=NULL;
+  vector<TParticle> out;
+  int size;
+  TParticle *p;
+  
+  for (int ii=0;ii<nevents;ii++){
+    if ((ii%10000)==0) cout<<"Event "<<ii<<endl;
+    
+    out.clear();
+    array=dataReader.getClonesArray(ii);   
+  
+    for (int jj=0;jj<array->GetEntries();jj++){
+      p=static_cast<TParticle*>(array->At(jj));    
+     
+     
+      //Get the Particle 4-vector and ID
+      p->Momentum(*lv);
+      pdg=p->GetPdgCode();
+     
+      weight=0;
+      weight=Track(lv,pdg,configfile.c_str());
+      if(weight){ //If the particle is tracked (0-> NO, 1->YES).
+	p->SetMomentum(*lv); 
+      }
+      else{
+	lv->SetXYZT(-1000,-1000,-1000,-1000);
+	p->SetMomentum(*lv); 
+      }
+	out.push_back(*p);
+    }   
+    if (out.size()==0) cout<<"Error: 0 particles in the output. e- should be there"<<endl;
+    dataWriter.writeEvent(out);
+  } //end cicle on events
+}
+
+
+
+
+
+
+Float_t Track(TLorentzVector* vec, Int_t ID,string CONFIGFILE){
+  double THETAD0=vec->Theta()*TMath::RadToDeg();
+  double P0=vec->Rho();
+  double PHIS0=vec->Phi()*TMath::RadToDeg();
+  float THETAD1=THETAD0;
+  float P1=P0;
+  float PHIS1=PHIS0;
+  float PHI=PHIS0;
+ //PHIS1 has to be "PHI IN THE SECTOR" for function clas_at12g.  
+  float TORCUR=1600;
+  float D_PHI,WEIGHT=0;
+  char* CFILE;
+  double Mass=vec->M(); //nominal mass of the particle
+  //char* CFILE="conf5.dat";
+  CFILE=&CONFIGFILE[0];
+
+  //PHIS1 HAS TO BE "PHI IN THE SECTOR".
+  if (PHIS1<0) PHIS1+=360;
+  PHIS1+=30;
+  if (PHIS1>=360) PHIS1=PHIS1-360;
+  int sector=((int)(PHIS1/60.)); //this is the sector, from 0 to 5
+  
+  PHIS1=PHIS1-30;
+  PHIS1=PHIS1-sector*60; //finally, this is "Phi in the sector", from -30 to + 30 degrees
+
+
+  PHIS0=PHIS1;
+
+  
+  TFastMC::clas_at12g(ID,P1,THETAD1,PHIS1,TORCUR,D_PHI,WEIGHT,CFILE); //THIS INCLUDE ALSO THE FT!!
+  //now we have PHIS1 smeared. But I need as output the PHI "real". Smearing is the same, because it is just a rotation by a costant quantity.
+  //AFTER SMEARING=PHIS1
+  //BEFORE SMEARING=PHIS0
+  //SMEARING=PHIS1-PHIS0 
+  //"ORIGINAL in clas frame": PHI
+  
+  
+  //need double precision
+  P0=P1;
+  THETAD0=THETAD1;
+  PHI=PHI+(PHIS1-PHIS0);
+
+  vec->SetXYZT(0,0,0,0);
+
+  vec->SetZ(P0);
+  vec->SetE(sqrt(P0*P0+Mass*Mass));
+  vec->SetTheta(THETAD0*TMath::DegToRad());
+  vec->SetPhi(PHI*TMath::DegToRad());
+
+  return WEIGHT;
+}
+
+
+

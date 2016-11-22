@@ -1,0 +1,36 @@
+#include <iostream>
+#include <vector>
+
+#include "TLorentzVector.h"
+#include "../JPsiIO/event.h"
+#include "TFile.h"
+#include "TTree.h"
+#include "TH1D.h"
+#include "TH2D.h"
+#include "TCanvas.h"
+
+#ifdef __MAKECINT__
+#pragma extra_include "vector";
+#pragma extra_include "TLorentzVector.h";
+
+#pragma link C++ class vector< int >+;
+#pragma link C++ class std::vector<TLorentzVector>;
+#endif
+
+ana(){
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+}

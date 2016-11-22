@@ -1,0 +1,126 @@
+#include <iostream>
+#include <string>
+#include "TString.h"
+#include "TH1D.h"
+#include "TFile.h"
+#include "CLHEP/Vector/LorentzVector.h"
+
+#include "IUAmpTools/AmplitudeManager.h"
+#include "IUAmpTools/ConfigFileParser.h"
+#include "IUAmpTools/ConfigurationInfo.h"
+#include "IUAmpTools/AmpToolsInterface.h"
+
+#include "Clas12PhotonsDataReader.h"
+#include "Clas12PhotonsAmplitude.h"
+
+//here goes our amplituds
+#include "EtaPiAmp/Constant.h"
+#include "EtaPiAmp/a2signal.h"
+#include "EtaPiAmp/BreitWigner.h"
+#include "EtaPiAmp/doubleRegge.h"
+
+#include "TDatabasePDG.h" //for particle masses
+
+//The PDG database
+TDatabasePDG thePDG;
+
+
+
+
+#define Me thePDG.GetParticle("e-")->Mass() //get the mass of the electron in GeV
+#define Mp thePDG.GetParticle("proton")->Mass()
+#define Mpi0 thePDG.GetParticle("pi0")->Mass()
+#define Meta thePDG.GetParticle("eta")->Mass()
+
+#define Ebeam 11.000510999
+TLorentzVector Pbeam(0,0,sqrt(Ebeam*Ebeam-Me*Me),Ebeam);
+TLorentzVector Ptarget(0,0,0,Mp);
+
+
+using namespace std;
+
+int main(int argc, char** argv){
+
+
+    // ************************
+    // usage
+    // ************************
+
+  cout << endl << " *** Printing Amplitudes *** " << endl << endl;
+
+  if (argc != 2){
+    cout << "Usage:" << endl << endl;
+    cout << "\tprintAmplitudes <config file name>" << endl << endl;
+    return 0;
+  }
+
+
+    // ************************
+    // parse the command line parameters
+    // ************************
+
+  string cfgname(argv[1]);
+
+  cout << "Config file name = " << cfgname << endl;
+
+
+
+    // ************************
+    // parse the config file
+    // ************************
+
+  ConfigFileParser parser(cfgname);
+  ConfigurationInfo* cfgInfo = parser.getConfigurationInfo();
+  cfgInfo->display();
+
+
+    // ************************
+    // AmpToolsInterface
+    // ************************
+  
+   
+    cout << endl << endl;
+    cout << "Creating AmpToolsInterface "<<endl;
+    //register here all the amplitude factors!
+    AmpToolsInterface::registerAmplitude( Constant() );
+    AmpToolsInterface::registerAmplitude( a2signal() );
+    AmpToolsInterface::registerAmplitude( BreitWigner() );
+    AmpToolsInterface::registerAmplitude( doubleRegge() );
+
+
+    AmpToolsInterface::registerDataReader( Clas12PhotonsDataReader() );
+    AmpToolsInterface ATI(cfgInfo);
+    cout << "... Finished creating AmpToolsInterface" << endl;
+
+
+      // ************************
+      // create a DataReader
+      // ************************
+
+    cout << "Creating Data Reader..." << endl;
+     Clas12PhotonsDataReader *dataReader=(Clas12PhotonsDataReader*)ATI.genMCReader(cfgInfo->reactionList()[0]->reactionName()); 
+    // DataReader *dataReader=ATI.genMCReader(cfgInfo->reactionList()[0]->reactionName()); 
+     vector<int> GJ_mesons;
+    GJ_mesons.push_back(5);
+    GJ_mesons.push_back(3);
+    GJ_mesons.push_back(4);
+    dataReader->SetGJReferenceFrame(GJ_mesons);
+    
+
+    cout << "... Finished creating Data Reader" << endl << endl << endl;
+
+
+      // ************************
+      // print out detailed information for ten events
+      // ************************
+ 
+   
+
+    int N=dataReader->numEvents();
+    Kinematics* kin;
+    for (unsigned int ievt = 0; ievt < 10; ievt++){
+      kin = dataReader->getEvent();
+      ATI.printEventDetails(cfgInfo->reactionList()[0]->reactionName(),kin);
+      delete kin;
+}    
+}

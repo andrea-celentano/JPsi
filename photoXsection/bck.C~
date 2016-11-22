@@ -1,0 +1,136 @@
+#include <iostream>
+#include <cmath>
+#include <complex>
+#include "TF1.h"
+#include "TCanvas.h"
+
+#define MP 0.9383
+#define MJ 3.096
+#define PI 3.14156
+
+#define ALPHA0 1.08
+#define ALPHAPRIME 0.1
+#define s0 1.
+#define bbeta 2.365
+#define SCALE 389.4*1E3 //from GeV-2 to nbarn
+
+TF1 *fKernel,*fSigma;
+
+
+//CM energy for A+B->s, for particle A
+double ECM(double s,double A,double B){
+  double ret=0;
+  ret=(s+A*A-B*B)/(2*sqrt(s));
+  return ret;
+}
+//CM momentum for A+B->s, for particle A
+double PCM(double s,double A,double B){
+  double ret=0;
+  double E=ECM(s,A,B);
+  ret=sqrt(E*E-A*A);
+  return ret;
+} 
+
+//Pomeron trajectory
+double alphaPomeron(double t){
+  double ret;
+  ret=ALPHA0+ALPHAPRIME*t;
+  return ret;
+}
+
+complex<double> Ampl(double s,double t){
+  complex<double> ret(1.,0.);
+  complex<double> i(0.,1.);
+  
+ 
+  ret=ret*pow((s/s0),(alphaPomeron(t)));
+  ret=ret*exp(-bbeta*fabs(t));
+  return ret;
+}
+
+double dSigmadT(double *x,double *par){
+  double t=x[0];   //ATTENTION. t is positive for me, |t|
+  double s=par[0];
+  double beta=par[1]; //normalization
+
+  double ret;
+  double PiCM=PCM(s,0,MP);
+
+
+  ret=1./(64*PI*s*PiCM*PiCM);
+  ret*=abs(Ampl(s,-t))*abs(Ampl(s,-t));
+  ret*=beta*beta;
+
+
+  //cout<<"dsigma/dt: "<<s<<" "<<t<<" "<<ret<<endl;
+  return ret*SCALE;
+}
+
+double Sigma(double *x,double *par){
+  double s=x[0]*x[0];
+  double beta=par[0];
+  double ret=0;
+  double ret2=0;
+  double k=0;
+  double tmin,tmax;
+  
+  double EgCM=ECM(s,0,MP);
+  double EpCM=ECM(s,MP,0);
+  double PgCM=EgCM;
+  double PpCM=EgCM;
+  
+  double EjCM=ECM(s,MJ,MP);
+  double EppCM=ECM(s,MP,MJ);
+  double PjCM=PCM(s,MJ,MP);
+  double PppCM=PjCM;
+
+  tmin=fabs((EgCM-EjCM)*(EgCM-EjCM)-(PgCM-PjCM)*(PgCM-PjCM));
+  tmax=tmin+4*PgCM*PjCM;
+  
+ 
+  k=2*bbeta+2*ALPHAPRIME*log(s/s0);
+  ret2=beta*beta/(64*PI*s0*PgCM*PgCM);
+  ret2*=pow(s/s0,2*ALPHA0-1);
+  ret2*=(1/k)*(exp(-tmin*k)-exp(-tmax*k));
+
+
+  cout<<s<<" "<<tmin<<" "<<tmax<<" "<<ret<<" "<<ret2<<endl;
+  return ret2*SCALE;  
+}
+
+
+void bck(){
+  fKernel=new TF1("fKernel",dSigmadT,0,100,2);
+  fKernel->SetNpx(10000);
+
+  TCanvas *c=new TCanvas("c","c");
+  c->Divide(2,2);
+  double tmin,tmax;
+  double s=7*7;
+  double EgCM=ECM(s,0,MP);
+  double EpCM=ECM(s,MP,0);
+  double PgCM=EgCM;
+  double PpCM=EgCM;
+  
+  double EjCM=ECM(s,MJ,MP);
+  double EppCM=ECM(s,MP,MJ);
+  double PjCM=PCM(s,MJ,MP);
+  double PppCM=PjCM;
+
+  tmin=fabs((EgCM-EjCM)*(EgCM-EjCM)-(PgCM-PjCM)*(PgCM-PjCM));
+  tmax=tmin+4*PgCM*PjCM;
+
+  c->cd(1);
+  fKernel->SetParameters(s,0.063);
+  fKernel->Draw();
+
+  
+  double Wmin=4.2;
+  double Wmax=100;
+  fSigma=new TF1("fSigma",Sigma,Wmin,Wmax,1);
+  fSigma->SetParameter(0,0.063);
+  fSigma->SetNpx(100);
+  c->cd(2);
+  fSigma->Draw();
+  
+}
