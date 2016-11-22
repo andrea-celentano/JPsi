@@ -1,9 +1,5 @@
-INC_DIR :=  -I.. \
-	-I$(ROOTSYS)/include/root -I$(AMPTOOLS) -I$(MCTOOLKIT) -I../../JPsi \
-	-I$(EDGEN)/src -I$(CLAS12PHOTONS_AMPTOOLS)/src -I$(QFT)/include 
-LIB_DIR := -L$(ROOTSYS)/lib \
-	-L$(AMPTOOLS)/lib -L$(MCTOOLKIT)/lib -L../../JPsi/lib -L$(EDGEN)/lib \
-	-L$(CLAS12PHOTONS_AMPTOOLS)/lib -L$(QFT)/lib 
+INC_DIR :=  -I.. -I$(ROOTSYS)/include/root -I$(AMPTOOLS) -I$(JPSIANA_ROOT) -I$(CLAS12PHOTONS_AMPTOOLS)/src
+LIB_DIR := -L$(ROOTSYS)/lib -L$(AMPTOOLS)/lib -L$(JPSIANA_ROOT)/lib -L$(CLAS12PHOTONS_AMPTOOLS)/lib 
 
 ROOTLIBS := $(shell root-config --glibs)
 
@@ -18,13 +14,12 @@ INC_DIR += -I$(CUDA_INSTALL_PATH)/include
 LIB_DIR += -L$(CUDA_INSTALL_PATH)/lib
 
 LIBS :=  -lJPsi_GPU -lAmpTools_GPU $(ROOTLIBS)  \
-	-lcuda -lcudart -lstdc++ -lEG -lEGGen
+	-lcuda -lcudart -lstdc++
 CXX_FLAGS += -DGPU_ACCELERATION
 
 else
 
-LIBS :=  -lJPsi -lClas12Photons_AmpTools -lAmpTools -lProofPlayer -lProof $(ROOTLIBS)  \
-	-lstdc++ -lEG -lEGGen -lqft++
+LIBS :=  -lJPsi -lClas12Photons_AmpTools -lAmpTools -lProofPlayer -lProof $(ROOTLIBS) -lstdc++ 
 
 endif
 

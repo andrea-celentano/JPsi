@@ -1,5 +1,5 @@
 
-INC_DIR :=  -I.. -I$(ROOTSYS)/include/root -I$(AMPTOOLS) -I$(QFT)/include -I$(CLAS12PHOTONS_AMPTOOLS)/src
+INC_DIR :=  -I.. -I$(ROOTSYS)/include/root -I$(AMPTOOLS) -I$(CLAS12PHOTONS_AMPTOOLS)/src
 
 #CXX := gcc
 CXX = g++
